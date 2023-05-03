@@ -1,5 +1,5 @@
 // app/routes/login.tsx
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Layout } from '~/components/layout';
 import { FormField } from '~/components/form-field';
 import {
@@ -8,14 +8,13 @@ import {
   LoaderFunction,
   redirect,
 } from '@remix-run/node';
+import { login, register, getUser } from '~/utils/auth.server';
 import {
   validateEmail,
   validateName,
   validatePassword,
 } from '~/utils/validators.server';
-import { login, register, getUser } from '~/utils/auth.server';
 import { useActionData } from '@remix-run/react';
-import { useRef, useEffect } from 'react';
 
 export const loader: LoaderFunction = async ({ request }) => {
   // If there's already a user in the session, redirect to the home page
@@ -81,19 +80,25 @@ export const action: ActionFunction = async ({ request }) => {
 };
 
 export default function Login() {
-  // const [action, setAction] = useState('login');
   const actionData = useActionData();
-
   const firstLoad = useRef(true);
   const [errors, setErrors] = useState(actionData?.errors || {});
   const [formError, setFormError] = useState(actionData?.error || '');
-
+  const [action, setAction] = useState('login');
   const [formData, setFormData] = useState({
     email: actionData?.fields?.email || '',
     password: actionData?.fields?.password || '',
-    firstName: actionData?.fields?.lastName || '',
-    lastName: actionData?.fields?.firstName || '',
+    firstName: actionData?.fields?.firstName || '',
+    lastName: actionData?.fields?.lastName || '',
   });
+
+  // Updates the form data when an input changes
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    field: string,
+  ) => {
+    setFormData((form) => ({ ...form, [field]: event.target.value }));
+  };
 
   useEffect(() => {
     if (!firstLoad.current) {
@@ -119,14 +124,6 @@ export default function Login() {
     firstLoad.current = false;
   }, []);
 
-  // Updates the form data when an input changes
-  const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    field: string,
-  ) => {
-    setFormData((form) => ({ ...form, [field]: event.target.value }));
-  };
-
   return (
     <Layout>
       <div className="h-full justify-center items-center flex flex-col gap-y-4">
@@ -144,11 +141,11 @@ export default function Login() {
             ? 'Log In To Give Some Praise!'
             : 'Sign Up To Get Started!'}
         </p>
-
         <form method="POST" className="rounded-2xl bg-gray-200 p-6 w-96">
           <div className="text-xs font-semibold text-center tracking-wide text-red-500 w-full">
             {formError}
           </div>
+
           <FormField
             htmlFor="email"
             label="Email"
@@ -164,8 +161,10 @@ export default function Login() {
             onChange={(e) => handleInputChange(e, 'password')}
             error={errors?.password}
           />
+
           {action === 'register' && (
             <>
+              {/* First Name */}
               <FormField
                 htmlFor="firstName"
                 label="First Name"
@@ -173,6 +172,7 @@ export default function Login() {
                 value={formData.firstName}
                 error={errors?.firstName}
               />
+              {/* Last Name */}
               <FormField
                 htmlFor="lastName"
                 label="Last Name"
